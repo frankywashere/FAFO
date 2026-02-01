@@ -34,6 +34,9 @@ final class ActionExecutor: ObservableObject {
     @Published var actionHistory: [ActionLogEntry] = []
     @Published var isExecuting = false
 
+    /// Tracks net show_desktop calls in current execution batch (odd = desktop revealed)
+    private var showDesktopCount = 0
+
     private let inputControl: InputControlService
 
     struct ActionLogEntry: Identifiable {
@@ -57,6 +60,7 @@ final class ActionExecutor: ObservableObject {
     func execute(actions: [AIAction], coordinateContext: CoordinateContext?) async {
         guard !actions.isEmpty else { return }
         isExecuting = true
+        showDesktopCount = 0
 
         if let ctx = coordinateContext {
             Log.info("Coordinate mapping: image(\(ctx.imageWidth)x\(ctx.imageHeight)) -> display(\(ctx.displayWidth)x\(ctx.displayHeight))")
@@ -72,6 +76,18 @@ final class ActionExecutor: ObservableObject {
             if !entry.success {
                 Log.error("Action failed: \(entry.detail)")
             }
+        }
+
+        // Auto-restore desktop if show_desktop was called an odd number of times
+        // (meaning desktop is still revealed when actions finished)
+        if showDesktopCount % 2 == 1 {
+            Log.info("Auto-restoring desktop (show_desktop called \(showDesktopCount) time(s) — desktop still revealed)")
+            // Brief delay to let the last action settle before restoring
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            inputControl.showDesktop()
+            showDesktopCount += 1
+            let entry = ActionLogEntry(timestamp: Date(), action: "SHOW_DESKTOP (auto-restore)", success: true, detail: "Desktop auto-restored after action execution")
+            actionHistory.append(entry)
         }
 
         isExecuting = false
@@ -234,6 +250,7 @@ final class ActionExecutor: ObservableObject {
 
         case .showDesktop:
             inputControl.showDesktop()
+            showDesktopCount += 1
             Log.action("  -> Toggled Show Desktop")
             return ActionLogEntry(timestamp: timestamp, action: action.description, success: true, detail: "Show Desktop toggled")
 

@@ -60,6 +60,7 @@ You can include multiple action blocks in a single response. You can also includ
 10. **NEVER click on empty desktop/wallpaper areas.** On macOS Sonoma+, clicking the wallpaper hides ALL windows. If windows disappear, use focus_app or press Escape to recover.
 11. **To interact with desktop icons when windows are covering the desktop**, first reveal the desktop (see Desktop Interaction section below). Do NOT click blindly at coordinates under windows.
 12. **You may see this control app and Terminal in the screenshot.** These are tools used to control you. Do not interact with them unless the user explicitly asks. Focus on the user's actual task and target applications.
+13. **When the task is complete, clearly state whether it succeeded or failed.** Don't leave the user guessing — say "Done" or explain what went wrong.
 
 ## Example
 
@@ -105,9 +106,9 @@ I'll open Safari for you.
 - **Before clicking, dragging, or otherwise interacting with desktop file/folder icons**, you MUST first reveal the desktop:
   1. **Best method:** Use `{"action": "show_desktop"}` to toggle Show Desktop. This hides ALL windows at once, revealing the desktop. Use `{"action": "show_desktop"}` again afterward to restore windows.
   2. Alternative: use `{"action": "click_element", "name": "<icon_name>"}` which can find desktop icons via Accessibility without needing to reveal the desktop.
-- **After finishing with desktop icons**, use `{"action": "show_desktop"}` again to restore all windows.
+- **After finishing with desktop icons**, the system will automatically restore windows. You do not need to manually call show_desktop to restore — focus on confirming the task result.
 - **NEVER click or drag on coordinates where you think a desktop icon is if windows are covering it.** The click/drag will hit the window, not the icon. You MUST use show_desktop to reveal the desktop first.
-- **For drag operations on desktop files**: First use show_desktop, then perform the drag, then use show_desktop again to restore windows.
+- **For drag operations on desktop files**: First use show_desktop, then perform the drag. The system will automatically restore windows when your actions are complete.
 - **This control app window is visible in screenshots.** You must hide it too (show_desktop hides everything including this app). Do NOT try to interact with desktop icons while this app's window is visible.
 """
 
