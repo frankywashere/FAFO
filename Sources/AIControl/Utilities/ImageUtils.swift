@@ -223,6 +223,149 @@ enum ImageUtils {
             }
         }
 
+        // ── Coordinate tick marks with numerical labels ──
+        // Draws ruler-style tick marks every 100px on all four edges.
+        // CGContext note: origin is bottom-left, so screen-Y must be flipped.
+
+        let tickInterval = 100        // pixels between ticks
+        let tickLength: CGFloat = 10  // tick line length in pixels
+        let tickFontSize: CGFloat = 12
+        let tickLineWidth: CGFloat = 1.5
+        let tickColor = CGColor(red: 1, green: 1, blue: 1, alpha: 0.9)         // white ticks
+        let tickLabelColor = NSColor(red: 1, green: 1, blue: 1, alpha: 0.95)   // white text
+        let tickBgColor = CGColor(red: 0, green: 0, blue: 0, alpha: 0.55)      // dark semi-transparent bg
+
+        let tickFont = NSFont.monospacedDigitSystemFont(ofSize: tickFontSize, weight: .medium)
+
+        // Helper: create a CTLine for a tick label string and measure its width
+        func makeTickLabel(_ text: String) -> (CTLine, CGFloat) {
+            let attr = NSAttributedString(
+                string: text,
+                attributes: [
+                    .font: tickFont,
+                    .foregroundColor: tickLabelColor
+                ]
+            )
+            let ctLine = CTLineCreateWithAttributedString(attr)
+            let bounds = CTLineGetBoundsWithOptions(ctLine, [])
+            return (ctLine, bounds.width)
+        }
+
+        context.setStrokeColor(tickColor)
+        context.setLineWidth(tickLineWidth)
+
+        // ── Top edge ticks (screen top = CGContext y near `height`) ──
+        for px in stride(from: 0, through: width, by: tickInterval) {
+            let x = CGFloat(px)
+            let topY = CGFloat(height)      // top of canvas in CG coords
+
+            // Tick line extending downward from top edge
+            context.move(to: CGPoint(x: x, y: topY))
+            context.addLine(to: CGPoint(x: x, y: topY - tickLength))
+            context.strokePath()
+
+            // Label below the tick
+            let (ctLine, textW) = makeTickLabel("\(px)")
+            let textX = x - textW / 2  // center label on tick
+            let textY = topY - tickLength - tickFontSize - 4  // below the tick line
+
+            // Background rect behind label
+            let bgW = textW + 4
+            let bgH = tickFontSize + 4
+            let bgX = textX - 2
+            let bgY = textY - 2
+            context.setFillColor(tickBgColor)
+            context.fill(CGRect(x: bgX, y: bgY, width: bgW, height: bgH))
+
+            context.textPosition = CGPoint(x: textX, y: textY)
+            CTLineDraw(ctLine, context)
+        }
+
+        // ── Bottom edge ticks (screen bottom = CGContext y near 0) ──
+        for px in stride(from: 0, through: width, by: tickInterval) {
+            let x = CGFloat(px)
+            let bottomY: CGFloat = 0  // bottom of canvas in CG coords
+
+            // Tick line extending upward from bottom edge
+            context.setStrokeColor(tickColor)
+            context.setLineWidth(tickLineWidth)
+            context.move(to: CGPoint(x: x, y: bottomY))
+            context.addLine(to: CGPoint(x: x, y: bottomY + tickLength))
+            context.strokePath()
+
+            // Label above the tick
+            let (ctLine, textW) = makeTickLabel("\(px)")
+            let textX = x - textW / 2
+            let textY = bottomY + tickLength + 4
+
+            let bgW = textW + 4
+            let bgH = tickFontSize + 4
+            let bgX = textX - 2
+            let bgY = textY - 2
+            context.setFillColor(tickBgColor)
+            context.fill(CGRect(x: bgX, y: bgY, width: bgW, height: bgH))
+
+            context.textPosition = CGPoint(x: textX, y: textY)
+            CTLineDraw(ctLine, context)
+        }
+
+        // ── Left edge ticks (screen left = CGContext x near 0) ──
+        for py in stride(from: 0, through: height, by: tickInterval) {
+            // py is in screen coords (top-left origin). Convert to CG coords.
+            let cgY = CGFloat(height - py)
+            let leftX: CGFloat = 0
+
+            // Tick line extending rightward from left edge
+            context.setStrokeColor(tickColor)
+            context.setLineWidth(tickLineWidth)
+            context.move(to: CGPoint(x: leftX, y: cgY))
+            context.addLine(to: CGPoint(x: leftX + tickLength, y: cgY))
+            context.strokePath()
+
+            // Label to the right of the tick
+            let (ctLine, textW) = makeTickLabel("\(py)")
+            let textX = leftX + tickLength + 4
+            let textY = cgY - tickFontSize / 2  // vertically center on tick
+
+            let bgW = textW + 4
+            let bgH = tickFontSize + 4
+            let bgX = textX - 2
+            let bgY = textY - 2
+            context.setFillColor(tickBgColor)
+            context.fill(CGRect(x: bgX, y: bgY, width: bgW, height: bgH))
+
+            context.textPosition = CGPoint(x: textX, y: textY)
+            CTLineDraw(ctLine, context)
+        }
+
+        // ── Right edge ticks (screen right = CGContext x near `width`) ──
+        for py in stride(from: 0, through: height, by: tickInterval) {
+            let cgY = CGFloat(height - py)
+            let rightX = CGFloat(width)
+
+            // Tick line extending leftward from right edge
+            context.setStrokeColor(tickColor)
+            context.setLineWidth(tickLineWidth)
+            context.move(to: CGPoint(x: rightX, y: cgY))
+            context.addLine(to: CGPoint(x: rightX - tickLength, y: cgY))
+            context.strokePath()
+
+            // Label to the left of the tick
+            let (ctLine, textW) = makeTickLabel("\(py)")
+            let textX = rightX - tickLength - textW - 4
+            let textY = cgY - tickFontSize / 2
+
+            let bgW = textW + 4
+            let bgH = tickFontSize + 4
+            let bgX = textX - 2
+            let bgY = textY - 2
+            context.setFillColor(tickBgColor)
+            context.fill(CGRect(x: bgX, y: bgY, width: bgW, height: bgH))
+
+            context.textPosition = CGPoint(x: textX, y: textY)
+            CTLineDraw(ctLine, context)
+        }
+
         return context.makeImage()
     }
 

@@ -326,10 +326,89 @@ final class InputControlService: ObservableObject {
             usleep(UInt32(1_000_000 * duration / Double(steps)))
         }
 
+        // After drag loop, before mouseUp -- check for folder at destination
+        let safeEnd = checkDragDestinationSafety(at: end)
+
+        // If destination was adjusted, send one more drag event to the safe point
+        if safeEnd != end {
+            let adjustDrag = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDragged,
+                                    mouseCursorPosition: safeEnd, mouseButton: .left)
+            adjustDrag?.post(tap: .cghidEventTap)
+            usleep(50_000)
+        }
+
         let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp,
-                             mouseCursorPosition: end, mouseButton: .left)
+                             mouseCursorPosition: safeEnd, mouseButton: .left)
         mouseUp?.post(tap: .cghidEventTap)
-        lastAction = "Dragged from (\(Int(start.x)),\(Int(start.y))) to (\(Int(end.x)),\(Int(end.y)))"
+        lastAction = "Dragged from (\(Int(start.x)),\(Int(start.y))) to (\(Int(safeEnd.x)),\(Int(safeEnd.y)))\(safeEnd != end ? " (adjusted for safety)" : "")"
+    }
+
+    // MARK: - Drag Destination Safety
+
+    /// Check whether the drag destination point overlaps a folder icon via the
+    /// Accessibility API.  If so, nudge the drop point 50 px away from the
+    /// folder's center to prevent an accidental drop-into-folder.
+    private func checkDragDestinationSafety(at point: CGPoint) -> CGPoint {
+        // Use Accessibility to check what's under the cursor
+        let systemWide = AXUIElementCreateSystemWide()
+        var elementRef: AXUIElement?
+        let result = AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &elementRef)
+
+        guard result == .success, let element = elementRef else {
+            return point  // Can't determine what's there, proceed normally
+        }
+
+        // Check element's role, subrole, and title
+        var roleValue: CFTypeRef?
+        var subroleValue: CFTypeRef?
+        var titleValue: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleValue)
+        AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subroleValue)
+        AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &titleValue)
+
+        let role = roleValue as? String ?? ""
+        let subrole = subroleValue as? String ?? ""
+        let title = titleValue as? String ?? ""
+
+        // Log what we found for debugging
+        Log.info("Drag safety check at (\(Int(point.x)), \(Int(point.y))): role=\(role), subrole=\(subrole), title=\(title)")
+
+        // Detect folder-like icons that could accept a drop.
+        // Desktop/Finder icons typically have role "AXIcon" or "AXGroup".
+        let isFolderLike = (role == "AXIcon" || role == "AXGroup") && !title.isEmpty
+
+        if isFolderLike {
+            // Get the element's position and size to compute its center
+            var posValue: CFTypeRef?
+            var sizeValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &posValue) == .success,
+               AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeValue) == .success {
+                var pos = CGPoint.zero
+                var size = CGSize.zero
+                AXValueGetValue(posValue as! AXValue, .cgPoint, &pos)
+                AXValueGetValue(sizeValue as! AXValue, .cgSize, &size)
+
+                let iconCenter = CGPoint(x: pos.x + size.width / 2, y: pos.y + size.height / 2)
+
+                // Nudge 50px away from the icon center
+                let dx = point.x - iconCenter.x
+                let dy = point.y - iconCenter.y
+                let dist = sqrt(dx * dx + dy * dy)
+                if dist > 0 {
+                    let nudgeX = point.x + (dx / dist) * 50
+                    let nudgeY = point.y + (dy / dist) * 50
+                    let adjusted = CGPoint(x: nudgeX, y: nudgeY)
+                    Log.info("Drag destination safety: drop point overlaps folder '\(title)' at (\(Int(iconCenter.x)),\(Int(iconCenter.y))). Nudging from (\(Int(point.x)),\(Int(point.y))) to (\(Int(adjusted.x)),\(Int(adjusted.y)))")
+                    return adjusted
+                }
+            }
+
+            // Fallback: nudge right and up by 50px
+            Log.info("Drag destination safety: drop point may overlap folder '\(title)'. Nudging +50px right")
+            return CGPoint(x: point.x + 50, y: point.y - 50)
+        }
+
+        return point
     }
 
     // MARK: - Smart Click (Accessibility)
