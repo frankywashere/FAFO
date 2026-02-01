@@ -15,7 +15,12 @@ enum AIAction: CustomStringConvertible {
     case wait(seconds: Double)
     case screenshot   // request a new screenshot
     case openApp(String) // open an application by name
+    case focusApp(String) // bring a running application to front
     case thinking(String)  // AI is explaining what it's doing
+    case clickElement(name: String)  // smart click via Accessibility APIs
+    case clickRegion(x1: Int, y1: Int, x2: Int, y2: Int)  // bounding box click (centroid)
+    case clickTile(tile: String, localX: Int, localY: Int)  // tile-based click (grid overlay)
+    case showDesktop  // toggle Show Desktop (reveal/restore desktop)
 
     var description: String {
         switch self {
@@ -30,7 +35,12 @@ enum AIAction: CustomStringConvertible {
         case .wait(let s): return "WAIT \(s)s"
         case .screenshot: return "SCREENSHOT (requesting new capture)"
         case .openApp(let name): return "OPEN_APP \"\(name)\""
+        case .focusApp(let name): return "FOCUS_APP \"\(name)\""
         case .thinking(let t): return "THINKING: \(t.prefix(80))"
+        case .clickElement(let name): return "CLICK_ELEMENT \"\(name)\""
+        case .clickRegion(let x1, let y1, let x2, let y2): return "CLICK_REGION (\(x1),\(y1))->(\(x2),\(y2))"
+        case .clickTile(let tile, let lx, let ly): return "CLICK_TILE \(tile) at local (\(lx), \(ly))"
+        case .showDesktop: return "SHOW_DESKTOP (toggle)"
         }
     }
 }
@@ -154,6 +164,28 @@ enum ActionParser {
         case "open_app", "open", "launch":
             guard let name = json["name"] as? String ?? json["app"] as? String else { return nil }
             return .openApp(name)
+
+        case "focus_app", "focus", "focus_window", "bring_to_front", "activate":
+            guard let name = json["name"] as? String ?? json["app"] as? String else { return nil }
+            return .focusApp(name)
+
+        case "click_element", "smart_click":
+            guard let name = json["name"] as? String else { return nil }
+            return .clickElement(name: name)
+
+        case "click_region", "click_box":
+            guard let x1 = json["x1"] as? Int, let y1 = json["y1"] as? Int,
+                  let x2 = json["x2"] as? Int, let y2 = json["y2"] as? Int else { return nil }
+            return .clickRegion(x1: x1, y1: y1, x2: x2, y2: y2)
+
+        case "click_tile":
+            guard let tile = json["tile"] as? String,
+                  let x = json["x"] as? Int,
+                  let y = json["y"] as? Int else { return nil }
+            return .clickTile(tile: tile, localX: x, localY: y)
+
+        case "show_desktop", "reveal_desktop", "hide_windows":
+            return .showDesktop
 
         default:
             return nil

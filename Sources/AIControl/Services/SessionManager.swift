@@ -205,8 +205,9 @@ final class SessionManager: ObservableObject {
             // Migrate sessions that have outdated system prompts
             let currentPrompt = ActionSystemPrompt.defaultPrompt
             var migrated = false
+            let defaultFirstLine = "You are an AI agent controlling a macOS computer."
             for i in sessions.indices {
-                if sessions[i].systemPrompt != currentPrompt && !sessions[i].systemPrompt.contains("open_app") {
+                if sessions[i].systemPrompt != currentPrompt && sessions[i].systemPrompt.hasPrefix(defaultFirstLine) {
                     sessions[i].systemPrompt = currentPrompt
                     migrated = true
                     Log.info("Migrated system prompt for session \"\(sessions[i].name)\"")

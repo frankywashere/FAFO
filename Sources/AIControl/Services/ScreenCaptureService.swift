@@ -31,6 +31,10 @@ final class ScreenCaptureService: NSObject, ObservableObject {
     @Published var fps: Double = 0
     @Published var latencyMs: Double = 0
     @Published var error: String?
+    @Published var displayPointWidth: Int = 0
+    @Published var displayPointHeight: Int = 0
+    var excludeOwnWindows = true
+    var excludeTerminalWindows = true
 
     private var stream: SCStream?
     private var streamOutput: StreamOutput?
@@ -51,13 +55,38 @@ final class ScreenCaptureService: NSObject, ObservableObject {
                 return
             }
 
-            // Exclude our own app windows so the AI doesn't see a recursive mirror
-            let ownPID = ProcessInfo.processInfo.processIdentifier
-            let ownWindows = availableContent.windows.filter { $0.owningApplication?.processID == ownPID }
-            if !ownWindows.isEmpty {
-                Log.info("Excluding \(ownWindows.count) own window(s) from capture (PID \(ownPID))")
+            // Build exclusion list based on configuration
+            var excludedWindows: [SCWindow] = []
+            Log.info("Capture exclusion settings: excludeOwnWindows=\(excludeOwnWindows), excludeTerminalWindows=\(excludeTerminalWindows)")
+
+            if excludeOwnWindows {
+                let ownPID = ProcessInfo.processInfo.processIdentifier
+                let ownWindows = availableContent.windows.filter { $0.owningApplication?.processID == ownPID }
+                excludedWindows.append(contentsOf: ownWindows)
+                if !ownWindows.isEmpty {
+                    Log.info("Excluding \(ownWindows.count) own window(s) from capture (PID \(ownPID))")
+                }
             }
-            let filter = SCContentFilter(display: display, excludingWindows: ownWindows)
+
+            if excludeTerminalWindows {
+                let terminalWindows = availableContent.windows.filter {
+                    $0.owningApplication?.bundleIdentifier == "com.apple.Terminal"
+                }
+                excludedWindows.append(contentsOf: terminalWindows)
+                if !terminalWindows.isEmpty {
+                    Log.info("Excluding \(terminalWindows.count) Terminal.app window(s) from capture")
+                }
+            }
+
+            if excludedWindows.isEmpty {
+                Log.info("Capturing all windows (no exclusions)")
+            }
+
+            let filter = SCContentFilter(display: display, excludingWindows: excludedWindows)
+
+            self.displayPointWidth = Int(display.width)
+            self.displayPointHeight = Int(display.height)
+            Log.info("Display point dimensions: \(displayPointWidth)x\(displayPointHeight)")
 
             let config = SCStreamConfiguration()
             config.width = Int(display.width)
