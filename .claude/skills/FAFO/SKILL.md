@@ -1,5 +1,5 @@
 ---
-name: computer-control
+name: FAFO
 description: Use this skill for direct computer control - taking screenshots, mouse clicks, keyboard input, app management, scrolling, dragging, and desktop automation via the aicontrol CLI.
 allowed-tools:
   - Bash(aicontrol *)
