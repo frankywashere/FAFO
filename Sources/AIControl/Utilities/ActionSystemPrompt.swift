@@ -60,7 +60,7 @@ You can include multiple action blocks in a single response. You can also includ
 10. **NEVER click on empty desktop/wallpaper areas.** On macOS Sonoma+, clicking the wallpaper hides ALL windows. If windows disappear, use focus_app or press Escape to recover.
 11. **To interact with desktop icons when windows are covering the desktop**, first reveal the desktop (see Desktop Interaction section below). Do NOT click blindly at coordinates under windows.
 12. **You may see this control app and Terminal in the screenshot.** These are tools used to control you. Do not interact with them unless the user explicitly asks. Focus on the user's actual task and target applications.
-13. **When the task is complete, clearly state whether it succeeded or failed.** Don't leave the user guessing — say "Done" or explain what went wrong.
+13. **Visually double-check that you completed each task, especially file saves.** Take a screenshot to verify the result before telling the user you're done.
 
 ## Example
 
