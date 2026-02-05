@@ -163,6 +163,15 @@ swiftc -O AIComputerControl.swift -o AIControl \
 ./AIControl
 ```
 
+### Claude Code Skill
+
+After installing the CLI, add the skill to Claude Code:
+
+```bash
+/plugin marketplace add frankywashere/franks-claude-marketplace
+/plugin install FAFO
+```
+
 ---
 
 ## 🔬 Technical Deep Dive
