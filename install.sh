@@ -68,7 +68,7 @@ sudo chmod +x /usr/local/bin/aicontrol
 # Install Claude Code skill
 echo ""
 echo "[4/5] Installing Claude Code skill..."
-SKILL_SRC="$SCRIPT_DIR/.claude/skills/FAFO"
+SKILL_SRC="$SCRIPT_DIR/skill-source/FAFO"
 SKILL_DEST="$HOME/.claude/skills/FAFO"
 
 mkdir -p "$SKILL_DEST"
