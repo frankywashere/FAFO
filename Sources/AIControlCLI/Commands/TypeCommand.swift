@@ -2,7 +2,7 @@ import ArgumentParser
 import Foundation
 import AIControlCore
 
-struct TypeCommand: AsyncParsableCommand {
+struct TypeCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "type",
         abstract: "Type text at the current cursor position"
@@ -17,23 +17,18 @@ struct TypeCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Press Enter after typing the text")
     var enter: Bool = false
 
-    @MainActor
-    mutating func run() async throws {
-        let inputService = InputControlService()
-
+    mutating func run() throws {
         // Type the text
-        inputService.typeText(text)
+        InputControlService.postTypeText(text)
 
         // Additional delay between characters if specified
         if delay > 0 {
-            // The InputControlService already has a built-in delay,
-            // this adds extra delay if requested
             usleep(UInt32(delay * 1000))
         }
 
         // Press Enter if requested
         if enter {
-            inputService.pressKey(.returnKey)
+            InputControlService.postKeyPress(.returnKey)
         }
 
         let details = enter

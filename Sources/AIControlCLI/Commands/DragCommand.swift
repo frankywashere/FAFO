@@ -3,7 +3,7 @@ import Foundation
 import AIControlCore
 import CoreGraphics
 
-struct DragCommand: AsyncParsableCommand {
+struct DragCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "drag",
         abstract: "Perform a drag operation from one point to another"
@@ -33,18 +33,13 @@ struct DragCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Hold Shift key during drag")
     var shift: Bool = false
 
-    @MainActor
-    mutating func run() async throws {
-        let inputService = InputControlService()
-
+    mutating func run() throws {
         let startPoint = CGPoint(x: startX, y: startY)
         let endPoint = CGPoint(x: endX, y: endY)
         let durationSeconds = TimeInterval(duration) / 1000.0
 
-        // Note: The current InputControlService.drag doesn't support modifier keys,
-        // but we document them for potential future implementation.
-        // For now, perform the basic drag operation.
-        inputService.drag(from: startPoint, to: endPoint, duration: durationSeconds)
+        // Perform the drag operation using static method
+        InputControlService.postDrag(from: startPoint, to: endPoint, duration: durationSeconds)
 
         var modifierInfo = ""
         if command || option || shift {

@@ -3,7 +3,7 @@ import Foundation
 import AIControlCore
 import CoreGraphics
 
-struct ScrollCommand: AsyncParsableCommand {
+struct ScrollCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "scroll",
         abstract: "Scroll at the current mouse position or specified coordinates"
@@ -21,21 +21,18 @@ struct ScrollCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Scroll horizontally instead of vertically")
     var horizontal: Bool = false
 
-    @MainActor
-    mutating func run() async throws {
-        let inputService = InputControlService()
-
+    mutating func run() throws {
         // Move mouse to position if coordinates provided
         if let x = x, let y = y {
-            inputService.moveMouse(to: CGPoint(x: x, y: y))
+            InputControlService.postMoveMouse(to: CGPoint(x: x, y: y))
             usleep(10000) // Small delay after moving
         }
 
         // Perform scroll
         if horizontal {
-            inputService.scroll(deltaX: Int32(amount), deltaY: 0)
+            InputControlService.postScroll(deltaX: Int32(amount), deltaY: 0)
         } else {
-            inputService.scroll(deltaX: 0, deltaY: Int32(amount))
+            InputControlService.postScroll(deltaX: 0, deltaY: Int32(amount))
         }
 
         let direction = horizontal ? "horizontal" : "vertical"

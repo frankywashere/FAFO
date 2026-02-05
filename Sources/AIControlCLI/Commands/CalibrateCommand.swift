@@ -4,7 +4,7 @@ import AppKit
 import CoreGraphics
 import AIControlCore
 
-struct CalibrateCommand: AsyncParsableCommand {
+struct CalibrateCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "calibrate",
         abstract: "Test coordinate system accuracy by moving mouse to known points"
@@ -22,7 +22,7 @@ struct CalibrateCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Margin from screen edges in pixels")
     var margin: Int = 50
 
-    mutating func run() async throws {
+    mutating func run() throws {
         // Get display dimensions
         let (width, height, _) = getDisplayInfo()
 
@@ -45,7 +45,7 @@ struct CalibrateCommand: AsyncParsableCommand {
                 moveMouseTo(target)
 
                 // Wait for mouse to settle (100ms)
-                try await Task.sleep(nanoseconds: 100_000_000)
+                Thread.sleep(forTimeInterval: 0.1)
 
                 // Read actual cursor position
                 let actual = getCursorPosition()

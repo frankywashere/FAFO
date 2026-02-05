@@ -411,12 +411,198 @@ public final class InputControlService: ObservableObject {
     }
 
     /// Get current cursor position
-    public static func getCursorPosition() -> CGPoint {
+    public nonisolated static func getCursorPosition() -> CGPoint {
         return CGEvent(source: nil)?.location ?? .zero
     }
 
+    // MARK: - Static CGEvent Methods (nonisolated, for CLI use)
+
+    /// Post a click at coordinates - can be called from any thread
+    public nonisolated static func postClick(at point: CGPoint) {
+        let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
+                          mouseCursorPosition: point, mouseButton: .left)
+        move?.post(tap: .cghidEventTap)
+        usleep(10000)
+
+        let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown,
+                          mouseCursorPosition: point, mouseButton: .left)
+        let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp,
+                        mouseCursorPosition: point, mouseButton: .left)
+        down?.post(tap: .cghidEventTap)
+        up?.post(tap: .cghidEventTap)
+    }
+
+    /// Post a right-click at coordinates - can be called from any thread
+    public nonisolated static func postRightClick(at point: CGPoint) {
+        let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
+                          mouseCursorPosition: point, mouseButton: .left)
+        move?.post(tap: .cghidEventTap)
+        usleep(10000)
+
+        let down = CGEvent(mouseEventSource: nil, mouseType: .rightMouseDown,
+                          mouseCursorPosition: point, mouseButton: .right)
+        let up = CGEvent(mouseEventSource: nil, mouseType: .rightMouseUp,
+                        mouseCursorPosition: point, mouseButton: .right)
+        down?.post(tap: .cghidEventTap)
+        up?.post(tap: .cghidEventTap)
+    }
+
+    /// Post a double-click at coordinates - can be called from any thread
+    public nonisolated static func postDoubleClick(at point: CGPoint) {
+        let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
+                          mouseCursorPosition: point, mouseButton: .left)
+        move?.post(tap: .cghidEventTap)
+        usleep(10000)
+
+        let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown,
+                          mouseCursorPosition: point, mouseButton: .left)
+        down?.setIntegerValueField(.mouseEventClickState, value: 2)
+        let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp,
+                        mouseCursorPosition: point, mouseButton: .left)
+        up?.setIntegerValueField(.mouseEventClickState, value: 2)
+        down?.post(tap: .cghidEventTap)
+        up?.post(tap: .cghidEventTap)
+    }
+
+    /// Post mouse move - can be called from any thread
+    public nonisolated static func postMoveMouse(to point: CGPoint) {
+        let event = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
+                           mouseCursorPosition: point, mouseButton: .left)
+        event?.post(tap: .cghidEventTap)
+    }
+
+    /// Post typed text - can be called from any thread
+    public nonisolated static func postTypeText(_ text: String) {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        for char in text {
+            let str = String(char)
+            let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true)
+            let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
+            var unichar = [UniChar](str.utf16)
+            keyDown?.keyboardSetUnicodeString(stringLength: unichar.count, unicodeString: &unichar)
+            keyUp?.keyboardSetUnicodeString(stringLength: unichar.count, unicodeString: &unichar)
+            keyDown?.post(tap: .cghidEventTap)
+            usleep(10_000)
+            keyUp?.post(tap: .cghidEventTap)
+            usleep(20_000)
+        }
+    }
+
+    /// Post key press - can be called from any thread
+    public nonisolated static func postKeyPress(_ key: Key, modifiers: CGEventFlags = []) {
+        let source = CGEventSource(stateID: .combinedSessionState)
+
+        // Build modifier keys
+        var modifierKeys: [UInt16] = []
+        if modifiers.contains(.maskCommand) { modifierKeys.append(55) }
+        if modifiers.contains(.maskShift) { modifierKeys.append(56) }
+        if modifiers.contains(.maskAlternate) { modifierKeys.append(58) }
+        if modifiers.contains(.maskControl) { modifierKeys.append(59) }
+
+        // Press modifier keys
+        for modKey in modifierKeys {
+            let modDown = CGEvent(keyboardEventSource: source, virtualKey: modKey, keyDown: true)
+            modDown?.flags = modifiers
+            modDown?.post(tap: .cghidEventTap)
+        }
+        if !modifierKeys.isEmpty { usleep(30_000) }
+
+        // Press main key
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: key.rawValue, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: key.rawValue, keyDown: false)
+        if !modifiers.isEmpty {
+            keyDown?.flags = modifiers
+            keyUp?.flags = modifiers
+        }
+        keyDown?.post(tap: .cghidEventTap)
+        usleep(50_000)
+        keyUp?.post(tap: .cghidEventTap)
+
+        // Release modifier keys
+        if !modifierKeys.isEmpty { usleep(30_000) }
+        for modKey in modifierKeys {
+            let modUp = CGEvent(keyboardEventSource: source, virtualKey: modKey, keyDown: false)
+            modUp?.post(tap: .cghidEventTap)
+        }
+    }
+
+    /// Post scroll - can be called from any thread
+    public nonisolated static func postScroll(deltaX: Int32 = 0, deltaY: Int32) {
+        let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel,
+                           wheelCount: 2, wheel1: deltaY, wheel2: deltaX, wheel3: 0)
+        event?.post(tap: .cghidEventTap)
+    }
+
+    /// Post drag - can be called from any thread
+    public nonisolated static func postDrag(from start: CGPoint, to end: CGPoint, duration: TimeInterval = 0.5) {
+        let steps = Int(duration * 60)
+        let dx = (end.x - start.x) / CGFloat(steps)
+        let dy = (end.y - start.y) / CGFloat(steps)
+
+        let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown,
+                               mouseCursorPosition: start, mouseButton: .left)
+        mouseDown?.post(tap: .cghidEventTap)
+        usleep(150_000)
+
+        for i in 1...steps {
+            let point = CGPoint(x: start.x + dx * CGFloat(i), y: start.y + dy * CGFloat(i))
+            let drag = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDragged,
+                              mouseCursorPosition: point, mouseButton: .left)
+            drag?.post(tap: .cghidEventTap)
+            usleep(UInt32(1_000_000 * duration / Double(steps)))
+        }
+
+        let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp,
+                             mouseCursorPosition: end, mouseButton: .left)
+        mouseUp?.post(tap: .cghidEventTap)
+    }
+
+    /// Open application by name - can be called from any thread
+    public nonisolated static func postOpenApp(_ name: String) -> Bool {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        task.arguments = ["-a", name]
+        do {
+            try task.run()
+            task.waitUntilExit()
+            return task.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
+
+    /// Focus application by name - can be called from any thread
+    public nonisolated static func postFocusApp(_ name: String) -> Bool {
+        let script = """
+        tell application "\(name)" to activate
+        """
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        task.arguments = ["-e", script]
+        do {
+            try task.run()
+            task.waitUntilExit()
+            return task.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
+
+    /// Show desktop (Fn+F11) - can be called from any thread
+    public nonisolated static func postShowDesktop() {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        let fnFlag = CGEventFlags(rawValue: 0x800000) // maskSecondaryFn
+        let f11Down = CGEvent(keyboardEventSource: source, virtualKey: 103, keyDown: true)
+        let f11Up = CGEvent(keyboardEventSource: source, virtualKey: 103, keyDown: false)
+        f11Down?.flags = fnFlag
+        f11Up?.flags = fnFlag
+        f11Down?.post(tap: .cghidEventTap)
+        usleep(50_000)
+        f11Up?.post(tap: .cghidEventTap)
+    }
+
     /// Get display dimensions
-    public static func getDisplayDimensions() -> (width: Int, height: Int, scaleFactor: Double) {
+    public nonisolated static func getDisplayDimensions() -> (width: Int, height: Int, scaleFactor: Double) {
         guard let mainScreen = NSScreen.main else {
             return (0, 0, 1.0)
         }
@@ -426,7 +612,7 @@ public final class InputControlService: ObservableObject {
     }
 
     /// Check if screen recording permission is granted
-    public static func hasScreenRecordingPermission() -> Bool {
+    public nonisolated static func hasScreenRecordingPermission() -> Bool {
         // Attempt to get shareable content - this will fail if permission is not granted
         let semaphore = DispatchSemaphore(value: 0)
         var hasPermission = false
@@ -446,7 +632,7 @@ public final class InputControlService: ObservableObject {
     }
 
     /// Resolve key name string to Key enum
-    public static func resolveKeyCode(_ key: String) -> Key? {
+    public nonisolated static func resolveKeyCode(_ key: String) -> Key? {
         switch key.lowercased() {
         case "return", "enter": return .returnKey
         case "tab": return .tab
@@ -510,7 +696,7 @@ public final class InputControlService: ObservableObject {
     }
 
     /// Resolve modifier string array to CGEventFlags
-    public static func resolveModifiers(_ modifiers: [String]) -> CGEventFlags {
+    public nonisolated static func resolveModifiers(_ modifiers: [String]) -> CGEventFlags {
         var flags: CGEventFlags = []
         for mod in modifiers {
             switch mod.lowercased() {

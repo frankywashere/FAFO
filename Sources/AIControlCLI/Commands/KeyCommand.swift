@@ -3,7 +3,7 @@ import Foundation
 import AIControlCore
 import CoreGraphics
 
-struct KeyCommand: AsyncParsableCommand {
+struct KeyCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "key",
         abstract: "Press a key or key combination"
@@ -27,8 +27,7 @@ struct KeyCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Hold Function (Fn) key")
     var fn: Bool = false
 
-    @MainActor
-    mutating func run() async throws {
+    mutating func run() throws {
         // Resolve the key name to a Key enum
         guard let resolvedKey = InputControlService.resolveKeyCode(key) else {
             let result = CommandResult.failure(
@@ -49,9 +48,8 @@ struct KeyCommand: AsyncParsableCommand {
 
         let flags = InputControlService.resolveModifiers(modifiers)
 
-        // Perform the key press
-        let inputService = InputControlService()
-        inputService.pressKey(resolvedKey, modifiers: flags)
+        // Perform the key press using static method
+        InputControlService.postKeyPress(resolvedKey, modifiers: flags)
 
         // Build display string for the key combination
         var displayModifiers: [String] = []

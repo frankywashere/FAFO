@@ -3,7 +3,7 @@ import Foundation
 import AIControlCore
 import CoreGraphics
 
-struct MoveMouseCommand: AsyncParsableCommand {
+struct MoveMouseCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "move-mouse",
         abstract: "Move the mouse cursor to specified coordinates"
@@ -21,9 +21,7 @@ struct MoveMouseCommand: AsyncParsableCommand {
     @Option(name: .shortAndLong, help: "Duration of animation in milliseconds (if animated)")
     var duration: Int = 200
 
-    @MainActor
-    mutating func run() async throws {
-        let inputService = InputControlService()
+    mutating func run() throws {
         let targetPoint = CGPoint(x: x, y: y)
 
         if animate {
@@ -39,11 +37,11 @@ struct MoveMouseCommand: AsyncParsableCommand {
                     x: currentPos.x + dx * CGFloat(i),
                     y: currentPos.y + dy * CGFloat(i)
                 )
-                inputService.moveMouse(to: point)
+                InputControlService.postMoveMouse(to: point)
                 usleep(stepDelay)
             }
         } else {
-            inputService.moveMouse(to: targetPoint)
+            InputControlService.postMoveMouse(to: targetPoint)
         }
 
         let result = CommandResult.success(

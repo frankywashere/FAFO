@@ -3,7 +3,7 @@ import Foundation
 import AIControlCore
 import CoreGraphics
 
-struct ClickCommand: AsyncParsableCommand {
+struct ClickCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "click",
         abstract: "Perform a left mouse click at specified coordinates"
@@ -18,15 +18,13 @@ struct ClickCommand: AsyncParsableCommand {
     @Option(name: .shortAndLong, help: "Delay in milliseconds before clicking")
     var delay: Int = 0
 
-    @MainActor
-    mutating func run() async throws {
+    mutating func run() throws {
         if delay > 0 {
             usleep(UInt32(delay * 1000))
         }
 
-        let inputService = InputControlService()
         let point = CGPoint(x: x, y: y)
-        inputService.click(at: point)
+        InputControlService.postClick(at: point)
 
         let result = CommandResult.success(
             action: "click",
@@ -36,7 +34,7 @@ struct ClickCommand: AsyncParsableCommand {
     }
 }
 
-struct RightClickCommand: AsyncParsableCommand {
+struct RightClickCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "right-click",
         abstract: "Perform a right mouse click at specified coordinates"
@@ -51,15 +49,13 @@ struct RightClickCommand: AsyncParsableCommand {
     @Option(name: .shortAndLong, help: "Delay in milliseconds before clicking")
     var delay: Int = 0
 
-    @MainActor
-    mutating func run() async throws {
+    mutating func run() throws {
         if delay > 0 {
             usleep(UInt32(delay * 1000))
         }
 
-        let inputService = InputControlService()
         let point = CGPoint(x: x, y: y)
-        inputService.rightClick(at: point)
+        InputControlService.postRightClick(at: point)
 
         let result = CommandResult.success(
             action: "right-click",
@@ -69,7 +65,7 @@ struct RightClickCommand: AsyncParsableCommand {
     }
 }
 
-struct DoubleClickCommand: AsyncParsableCommand {
+struct DoubleClickCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "double-click",
         abstract: "Perform a double click at specified coordinates"
@@ -84,15 +80,13 @@ struct DoubleClickCommand: AsyncParsableCommand {
     @Option(name: .shortAndLong, help: "Delay in milliseconds before clicking")
     var delay: Int = 0
 
-    @MainActor
-    mutating func run() async throws {
+    mutating func run() throws {
         if delay > 0 {
             usleep(UInt32(delay * 1000))
         }
 
-        let inputService = InputControlService()
         let point = CGPoint(x: x, y: y)
-        inputService.doubleClick(at: point)
+        InputControlService.postDoubleClick(at: point)
 
         let result = CommandResult.success(
             action: "double-click",

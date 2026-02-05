@@ -22,6 +22,9 @@ struct CaptureCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Add visual grid overlay to screenshot")
     var grid: Bool = false
 
+    @Flag(name: .long, help: "Draw a crosshair marker at cursor position for debugging coordinates")
+    var marker: Bool = false
+
     mutating func run() async throws {
         do {
             // Capture screenshot using ScreenCaptureService
@@ -29,6 +32,11 @@ struct CaptureCommand: AsyncParsableCommand {
                 displayIndex: display,
                 includeCursor: includeCursor
             )
+
+            // Get cursor position using CGEvent (need it early for marker)
+            let cursorLocation = CGEvent(source: nil)?.location ?? .zero
+            let cursorX = Int(cursorLocation.x)
+            let cursorY = Int(cursorLocation.y)
 
             // Apply grid overlay if requested
             var finalImage = capturedImage
@@ -38,10 +46,12 @@ struct CaptureCommand: AsyncParsableCommand {
                 }
             }
 
-            // Get cursor position using CGEvent
-            let cursorLocation = CGEvent(source: nil)?.location ?? .zero
-            let cursorX = Int(cursorLocation.x)
-            let cursorY = Int(cursorLocation.y)
+            // Draw cursor marker if requested (shows exactly where cursor is in screenshot)
+            if marker {
+                if let markedImage = ImageUtils.drawMarker(on: finalImage, atX: cursorX, atY: cursorY, size: 40, lineWidth: 3) {
+                    finalImage = markedImage
+                }
+            }
 
             // Determine output path
             let outputPath: String
