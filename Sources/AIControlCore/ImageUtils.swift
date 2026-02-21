@@ -42,8 +42,8 @@ public enum ImageUtils {
         if maxCurrent <= maxDimension { return cgImage }
 
         let scale = CGFloat(maxDimension) / CGFloat(maxCurrent)
-        let newWidth = Int(CGFloat(width) * scale)
-        let newHeight = Int(CGFloat(height) * scale)
+        let newWidth = Int((CGFloat(width) * scale).rounded())
+        let newHeight = Int((CGFloat(height) * scale).rounded())
 
         guard let context = CGContext(
             data: nil,
@@ -76,12 +76,12 @@ public enum ImageUtils {
 
         // Scale proportionally to fit within target dimensions
         let scale = min(tgtW / srcW, tgtH / srcH, 1.0)
-        let scaledW = Int(srcW * scale)
-        let scaledH = Int(srcH * scale)
+        let scaledW = Int((srcW * scale).rounded())
+        let scaledH = Int((srcH * scale).rounded())
 
-        // Center on canvas
-        let offsetX = (targetWidth - scaledW) / 2
-        let offsetY = (targetHeight - scaledH) / 2
+        // Center on canvas (round offsets to avoid asymmetric letterbox padding)
+        let offsetX = Int(((CGFloat(targetWidth) - CGFloat(scaledW)) / 2.0).rounded())
+        let offsetY = Int(((CGFloat(targetHeight) - CGFloat(scaledH)) / 2.0).rounded())
 
         guard let context = CGContext(
             data: nil,

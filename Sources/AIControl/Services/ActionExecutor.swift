@@ -131,8 +131,11 @@ final class ActionExecutor: ObservableObject {
         let adjustedX = clampedX - context.letterboxOffsetX
         let adjustedY = clampedY - context.letterboxOffsetY
 
-        let screenX = max(0, min(adjustedX * context.displayWidth / context.letterboxImageW, context.displayWidth - 1))
-        let screenY = max(0, min(adjustedY * context.displayHeight / context.letterboxImageH, context.displayHeight - 1))
+        // Use floating-point math to avoid integer truncation errors, round at the end
+        let scaledX = (Double(adjustedX) * Double(context.displayWidth)) / Double(context.letterboxImageW)
+        let scaledY = (Double(adjustedY) * Double(context.displayHeight)) / Double(context.letterboxImageH)
+        let screenX = max(0, min(Int(scaledX.rounded()), context.displayWidth - 1))
+        let screenY = max(0, min(Int(scaledY.rounded()), context.displayHeight - 1))
 
         // Sanity check: warn if mapped point is in a different quadrant than the AI coordinate
         let aiQuadX = clampedX < context.imageWidth / 2  // AI intended left half
@@ -269,8 +272,8 @@ final class ActionExecutor: ObservableObject {
             return ActionLogEntry(timestamp: timestamp, action: action.description, success: success, detail: success ? "Focused \(name)" : "Failed to focus \(name)")
 
         case .clickRegion(let x1, let y1, let x2, let y2):
-            let cx = (x1 + x2) / 2
-            let cy = (y1 + y2) / 2
+            let cx = Int(((Double(x1) + Double(x2)) / 2.0).rounded())
+            let cy = Int(((Double(y1) + Double(y2)) / 2.0).rounded())
             inputControl.click(at: CGPoint(x: cx, y: cy))
             Log.action("  -> Click-region centroid at (\(cx), \(cy)) [box: (\(x1),\(y1))->(\(x2),\(y2))]")
             return ActionLogEntry(timestamp: timestamp, action: action.description, success: true,
